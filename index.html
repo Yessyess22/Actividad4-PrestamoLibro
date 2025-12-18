@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Bibliotecario Profesional</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+    <div class="app-container">
+
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="logo">
+                <i class="fa-solid fa-graduation-cap"></i>
+                <h2>Biblio<span class="highlight">Sys</span></h2>
+            </div>
+
+            <ul class="nav-links">
+                <li class="nav-item active" onclick="app.openTab('tab-users')">
+                    <i class="fa-solid fa-users"></i>
+                    <span>Usuarios</span>
+                </li>
+                <li class="nav-item" onclick="app.openTab('tab-books')">
+                    <i class="fa-solid fa-book"></i>
+                    <span>Libros</span>
+                </li>
+                <li class="nav-item" onclick="app.openTab('tab-loans')">
+                    <i class="fa-solid fa-hand-holding-dollar"></i>
+                    <span>Préstamos</span>
+                </li>
+            </ul>
+
+            <div class="sidebar-footer">
+                <p>v2.0.0 - Sistema de Gestión</p>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+
+            <!-- Header -->
+            <header class="top-bar">
+                <h2 id="pageTitle">Gestión de Usuarios</h2>
+                <div class="user-info">
+                    <span>Administrador</span>
+                    <div class="avatar"><i class="fa-solid fa-user-shield"></i></div>
+                </div>
+            </header>
+
+            <!-- Notifications -->
+            <div id="notificationArea" class="notification-area"></div>
+
+            <!-- TAB: USUARIOS -->
+            <section id="tab-users" class="tab-content active">
+                <div class="content-wrapper">
+                    <div class="form-card">
+                        <div class="card-header">
+                            <i class="fa-solid fa-user-plus"></i>
+                            <h3>Registrar Nuevo Usuario</h3>
+                        </div>
+                        <form id="formUser">
+                            <div class="form-group">
+                                <label>ID Usuario (Generado Automáticamente)</label>
+                                <input type="text" id="userId" placeholder="Autogenerado al guardar" disabled
+                                    style="background-color: #f1f5f9; cursor: not-allowed; color: #64748b;">
+                            </div>
+                            <div class="form-group">
+                                <label>Nombre Completo</label>
+                                <input type="text" id="userName" placeholder="Nombre completo" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Tipo de Usuario</label>
+                                <select id="userType" required>
+                                    <option value="" disabled selected>Seleccionar...</option>
+                                    <option value="Estudiante">Estudiante</option>
+                                    <option value="Docente">Docente</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Guardar Usuario</button>
+                        </form>
+                    </div>
+
+                    <div class="list-card">
+                        <div class="card-header">
+                            <i class="fa-solid fa-users-viewfinder"></i>
+                            <h3>Directorio de Usuarios</h3>
+                        </div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nombre</th>
+                                    <th>Tipo</th>
+                                    <th>Préstamos Activos</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB: LIBROS -->
+            <section id="tab-books" class="tab-content">
+                <div class="content-wrapper">
+                    <div class="form-card">
+                        <div class="card-header">
+                            <i class="fa-solid fa-book-medical"></i>
+                            <h3>Registrar Nuevo Libro</h3>
+                        </div>
+                        <form id="formBook">
+                            <div class="form-group">
+                                <label>ID Libro</label>
+                                <input type="text" id="bookId" placeholder="Ej: L001" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Título</label>
+                                <input type="text" id="bookTitle" placeholder="Título del libro" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Autor</label>
+                                <input type="text" id="bookAuthor" placeholder="Autor del libro" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Guardar Libro</button>
+                        </form>
+                    </div>
+
+                    <div class="list-card">
+                        <div class="card-header">
+                            <i class="fa-solid fa-book-open"></i>
+                            <h3>Catálogo Bibliográfico</h3>
+                        </div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Título</th>
+                                    <th>Autor</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody id="booksTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB: PRÉSTAMOS -->
+            <section id="tab-loans" class="tab-content">
+                <div class="content-wrapper">
+                    <div class="form-card">
+                        <div class="card-header">
+                            <i class="fa-solid fa-file-signature"></i>
+                            <h3>Realizar Préstamo</h3>
+                        </div>
+                        <form id="formLoan">
+                            <div class="form-group">
+                                <label>Seleccionar Usuario</label>
+                                <select id="loanUser" required>
+                                    <option value="">Buscar usuario...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Seleccionar Libro</label>
+                                <select id="loanBook" required>
+                                    <option value="">Buscar libro disponible...</option>
+                                </select>
+                            </div>
+                            <div class="info-box">
+                                <i class="fa-solid fa-circle-info"></i>
+                                <p>Límite máximo: 3 préstamos por usuario.</p>
+                            </div>
+                            <button type="submit" class="btn btn-success">Generar Préstamo</button>
+                        </form>
+                    </div>
+
+                    <div class="list-card">
+                        <div class="card-header">
+                            <i class="fa-solid fa-clock-rotate-left"></i>
+                            <h3>Préstamos Activos</h3>
+                        </div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Usuario</th>
+                                    <th>Libro</th>
+                                    <th>Fecha Inicio</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="loansTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
