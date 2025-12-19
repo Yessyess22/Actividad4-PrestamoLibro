@@ -14,7 +14,7 @@
 
     <div class="app-container">
 
-        <!-- Sidebar Navigation -->
+        <!-- Navegación lateral -->
         <nav class="sidebar">
             <div class="logo">
                 <i class="fa-solid fa-graduation-cap"></i>
@@ -41,10 +41,10 @@
             </div>
         </nav>
 
-        <!-- Main Content Area -->
+        <!-- Área principal de contenido -->
         <main class="main-content">
 
-            <!-- Header -->
+            <!-- Encabezado -->
             <header class="top-bar">
                 <h2 id="pageTitle">Gestión de Usuarios</h2>
                 <div class="user-info">
@@ -53,10 +53,10 @@
                 </div>
             </header>
 
-            <!-- Notifications -->
+            <!-- Notificaciones -->
             <div id="notificationArea" class="notification-area"></div>
 
-            <!-- TAB: USUARIOS -->
+            <!-- PESTAÑA: USUARIOS -->
             <section id="tab-users" class="tab-content active">
                 <div class="content-wrapper">
                     <div class="form-card">
@@ -98,6 +98,7 @@
                                     <th>Nombre</th>
                                     <th>Tipo</th>
                                     <th>Préstamos Activos</th>
+                                    <th>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody id="usersTableBody"></tbody>
@@ -106,7 +107,7 @@
                 </div>
             </section>
 
-            <!-- TAB: LIBROS -->
+            <!-- PESTAÑA: LIBROS -->
             <section id="tab-books" class="tab-content">
                 <div class="content-wrapper">
                     <div class="form-card">
@@ -117,7 +118,8 @@
                         <form id="formBook">
                             <div class="form-group">
                                 <label>ID Libro</label>
-                                <input type="text" id="bookId" placeholder="Ej: L001" required>
+                                <input type="text" id="bookId" placeholder="Autogenerado al guardar" disabled
+                                    style="background-color: #f1f5f9; cursor: not-allowed; color: #64748b;">
                             </div>
                             <div class="form-group">
                                 <label>Título</label>
@@ -143,6 +145,7 @@
                                     <th>Título</th>
                                     <th>Autor</th>
                                     <th>Estado</th>
+                                    <th>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody id="booksTableBody"></tbody>
@@ -151,7 +154,7 @@
                 </div>
             </section>
 
-            <!-- TAB: PRÉSTAMOS -->
+            <!-- PESTAÑA: PRÉSTAMOS -->
             <section id="tab-loans" class="tab-content">
                 <div class="content-wrapper">
                     <div class="form-card">

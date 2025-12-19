@@ -12,39 +12,95 @@ class LibrarySystem {
         this.loans = [];
         this.MAX_LOANS = 3;
 
+        // Estado de edición (null cuando no se edita)
+        this.editingUserId = null;
+        this.editingBookId = null;
+
         this.init();
     }
 
     init() {
+        this.loadFromStorage();
         this.renderAll();
         this.setupEventListeners();
         // Abrir pestaña por defecto
         this.openTab('tab-users');
     }
 
-    // --- UI LOGIC ---
+    // --- PERSISTENCIA (localStorage) ---
+    loadFromStorage() {
+        try {
+            const raw = localStorage.getItem('library_data');
+            if (!raw) return;
+            const parsed = JSON.parse(raw);
+            if (parsed.users) this.users = parsed.users;
+            if (parsed.books) this.books = parsed.books;
+            if (parsed.loans) this.loans = parsed.loans;
+        } catch (err) {
+            console.error('Error leyendo storage', err);
+        }
+    }
+
+    saveToStorage() {
+        try {
+            const data = { users: this.users, books: this.books, loans: this.loans };
+            localStorage.setItem('library_data', JSON.stringify(data));
+        } catch (err) {
+            console.error('Error guardando en storage', err);
+        }
+    }
+
+    // --- UTILIDADES DE VALIDACIÓN / SEGURIDAD ---
+    escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    validateName(name) {
+        const v = String(name || '').trim();
+        if (v.length < 3) throw new Error('El nombre debe tener al menos 3 caracteres');
+        if (v.length > 100) throw new Error('El nombre es demasiado largo');
+        // Solo letras y espacios (incluye acentos y caracteres latinos extendidos)
+        const re = /^[A-Za-zÀ-ÖØ-öø-ÿÑñ ]+$/;
+        if (!re.test(v)) throw new Error('El nombre sólo puede contener letras y espacios');
+        return v;
+    }
+
+    validateTitleOrAuthor(value, fieldName = 'Campo') {
+        const v = String(value || '').trim();
+        if (v.length < 2) throw new Error(`${fieldName} debe tener al menos 2 caracteres`);
+        if (v.length > 150) throw new Error(`${fieldName} debe tener como máximo 150 caracteres`);
+        return v;
+    }
+
+    // --- LÓGICA DE INTERFAZ ---
 
     openTab(tabId) {
-        // Hide all tabs
+        // Ocultar todas las pestañas
         document.querySelectorAll('.tab-content').forEach(tab => {
             tab.classList.remove('active');
         });
 
-        // Remove active class from nav items
+        // Quitar clase activa de los elementos de navegación
         document.querySelectorAll('.nav-item').forEach(item => {
             item.classList.remove('active');
         });
 
-        // Show selected tab
+        // Mostrar la pestaña seleccionada
         document.getElementById(tabId).classList.add('active');
 
-        // Update nav item style
+        // Actualizar estilo del elemento de navegación activo
         const activeNavIndex = ['tab-users', 'tab-books', 'tab-loans'].indexOf(tabId);
         if (activeNavIndex !== -1) {
             document.querySelectorAll('.nav-item')[activeNavIndex].classList.add('active');
         }
 
-        // Update Header Title
+        // Actualizar título del encabezado
         const titles = {
             'tab-users': 'Gestión de Usuarios',
             'tab-books': 'Gestión de Libros',
@@ -67,14 +123,14 @@ class LibrarySystem {
 
         container.appendChild(notif);
 
-        // Remove after 3 seconds
+        // Eliminar después de 3 segundos
         setTimeout(() => {
             notif.style.opacity = '0';
             setTimeout(() => notif.remove(), 300);
         }, 3000);
     }
 
-    // --- BUSINESS LOGIC ---
+    // --- LÓGICA DE NEGOCIO ---
 
     registerUser(name, type) {
         if (!name || !type) throw new Error("Todos los campos son obligatorios.");
@@ -100,16 +156,68 @@ class LibrarySystem {
         }
 
         this.users.push({ id, name, type, activeLoans: 0 });
+        this.saveToStorage();
         this.showNotification(`Usuario registrado con ID: ${id}`);
         this.renderAll();
     }
 
-    registerBook(id, title, author) {
-        if (!id || !title || !author) throw new Error("Todos los campos son obligatorios.");
-        if (this.books.find(b => b.id === id)) throw new Error("El ID de libro ya existe.");
+    registerBook(title, author) {
+        // ahora el ID se genera automáticamente: registerBook(title, author)
+        if (!title || !author) throw new Error("Todos los campos son obligatorios.");
+
+        const prefix = 'L';
+        let n = this.books.filter(b => b.id && b.id.startsWith(prefix)).length + 1;
+        let id = `${prefix}${String(n).padStart(3, '0')}`;
+        while (this.books.find(b => b.id === id)) {
+            n++;
+            id = `${prefix}${String(n).padStart(3, '0')}`;
+        }
 
         this.books.push({ id, title, author, available: true });
-        this.showNotification("Libro registrado correctamente");
+        this.saveToStorage();
+        this.showNotification(`Libro registrado: ${id}`);
+        this.renderAll();
+    }
+
+    // --- CRUD ADICIONALES (Libros) ---
+    editBook(id) {
+        const book = this.books.find(b => b.id === id);
+        if (!book) return;
+        this.editingBookId = id;
+        document.getElementById('bookId').value = book.id;
+        document.getElementById('bookTitle').value = book.title;
+        document.getElementById('bookAuthor').value = book.author;
+        const btn = document.querySelector('#formBook .btn-primary');
+        if (btn) btn.textContent = 'Actualizar Libro';
+    }
+
+    updateBook(id, title, author) {
+        const book = this.books.find(b => b.id === id);
+        if (!book) throw new Error('Libro no encontrado');
+        if (!title || !author) throw new Error('Todos los campos son obligatorios.');
+        book.title = title;
+        book.author = author;
+        this.saveToStorage();
+        this.showNotification(`Libro ${id} actualizado`);
+        this.editingBookId = null;
+        const btn = document.querySelector('#formBook .btn-primary');
+        if (btn) btn.textContent = 'Guardar Libro';
+        document.getElementById('bookId').value = '';
+        this.renderAll();
+    }
+
+    deleteBook(id) {
+        if (!confirm(`¿Eliminar libro ${id}? Esta acción no se puede deshacer.`)) return;
+        const idx = this.books.findIndex(b => b.id === id);
+        if (idx === -1) return;
+        const book = this.books[idx];
+        if (!book.available) {
+            this.showNotification('No se puede eliminar: el libro está prestado', 'error');
+            return;
+        }
+        this.books.splice(idx, 1);
+        this.saveToStorage();
+        this.showNotification(`Libro ${id} eliminado`);
         this.renderAll();
     }
 
@@ -135,6 +243,7 @@ class LibrarySystem {
         user.activeLoans++;
         book.available = false;
 
+        this.saveToStorage();
         this.showNotification("Préstamo registrado exitosamente");
         this.renderAll();
     }
@@ -151,11 +260,54 @@ class LibrarySystem {
         if (book) book.available = true;
 
         this.loans.splice(loanIndex, 1);
+        this.saveToStorage();
         this.showNotification("Libro devuelto correctamente");
         this.renderAll();
     }
 
-    // --- RENDERING ---
+    // --- CRUD ADICIONALES (Usuarios) ---
+    editUser(id) {
+        const user = this.users.find(u => u.id === id);
+        if (!user) return;
+        this.editingUserId = id;
+        document.getElementById('userId').value = user.id;
+        document.getElementById('userName').value = user.name;
+        document.getElementById('userType').value = user.type;
+        const btn = document.querySelector('#formUser .btn-primary');
+        if (btn) btn.textContent = 'Actualizar Usuario';
+    }
+
+    updateUser(id, name, type) {
+        const user = this.users.find(u => u.id === id);
+        if (!user) throw new Error('Usuario no encontrado');
+        if (!name || !type) throw new Error('Todos los campos son obligatorios.');
+        user.name = name;
+        user.type = type;
+        this.saveToStorage();
+        this.showNotification(`Usuario ${id} actualizado`);
+        this.editingUserId = null;
+        const btn = document.querySelector('#formUser .btn-primary');
+        if (btn) btn.textContent = 'Guardar Usuario';
+        document.getElementById('userId').value = '';
+        this.renderAll();
+    }
+
+    deleteUser(id) {
+        if (!confirm(`¿Eliminar usuario ${id}? Esta acción no se puede deshacer.`)) return;
+        const idx = this.users.findIndex(u => u.id === id);
+        if (idx === -1) return;
+        const user = this.users[idx];
+        if (user.activeLoans > 0) {
+            this.showNotification('No se puede eliminar: el usuario tiene préstamos activos', 'error');
+            return;
+        }
+        this.users.splice(idx, 1);
+        this.saveToStorage();
+        this.showNotification(`Usuario ${id} eliminado`);
+        this.renderAll();
+    }
+
+    // --- RENDERIZADO ---
 
     renderAll() {
         this.renderUsersTable();
@@ -170,10 +322,18 @@ class LibrarySystem {
         this.users.forEach(u => {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td>${u.id}</td>
-                <td>${u.name}</td>
-                <td><span class="badge" style="background-color: #e0e7ff; color: #4338ca;">${u.type}</span></td>
-                <td>${u.activeLoans} / ${this.MAX_LOANS}</td>
+                <td>${this.escapeHtml(u.id)}</td>
+                <td>${this.escapeHtml(u.name)}</td>
+                <td><span class="badge" style="background-color: #e0e7ff; color: #4338ca;">${this.escapeHtml(u.type)}</span></td>
+                <td>${this.escapeHtml(String(u.activeLoans))} / ${this.escapeHtml(String(this.MAX_LOANS))}</td>
+                <td>
+                    <button class="btn btn-primary" style="width:auto; padding:0.4rem 0.6rem; margin-right:6px;" onclick="app.editUser('${u.id}')">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                    </button>
+                    <button class="btn btn-danger" style="padding:0.4rem 0.6rem;" onclick="app.deleteUser('${u.id}')">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </td>
             `;
             tbody.appendChild(row);
         });
@@ -189,10 +349,18 @@ class LibrarySystem {
                 : '<span class="badge badge-loaned">Prestado</span>';
 
             row.innerHTML = `
-                <td>${b.id}</td>
-                <td>${b.title}</td>
-                <td>${b.author}</td>
+                <td>${this.escapeHtml(b.id)}</td>
+                <td>${this.escapeHtml(b.title)}</td>
+                <td>${this.escapeHtml(b.author)}</td>
                 <td>${statusBadge}</td>
+                <td>
+                    <button class="btn btn-primary" style="width:auto; padding:0.4rem 0.6rem; margin-right:6px;" onclick="app.editBook('${this.escapeHtml(b.id)}')">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                    </button>
+                    <button class="btn btn-danger" style="padding:0.4rem 0.6rem;" onclick="app.deleteBook('${this.escapeHtml(b.id)}')">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </td>
             `;
             tbody.appendChild(row);
         });
@@ -210,9 +378,9 @@ class LibrarySystem {
         this.loans.forEach(l => {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td>${l.userName}</td>
-                <td>${l.bookTitle}</td>
-                <td>${l.date}</td>
+                <td>${this.escapeHtml(l.userName)}</td>
+                <td>${this.escapeHtml(l.bookTitle)}</td>
+                <td>${this.escapeHtml(l.date)}</td>
                 <td>
                     <button class="btn btn-danger" onclick="app.returnBook(${l.id})">
                         <i class="fa-solid fa-rotate-left"></i> Devolver
@@ -224,31 +392,37 @@ class LibrarySystem {
     }
 
     renderSelects() {
-        // Users Select
+        // Select de usuarios
         const userSelect = document.getElementById('loanUser');
         userSelect.innerHTML = '<option value="">Buscar usuario...</option>';
         this.users.forEach(u => {
-            userSelect.innerHTML += `<option value="${u.id}">${u.name} (${u.activeLoans} préstamos)</option>`;
+            userSelect.innerHTML += `<option value="${this.escapeHtml(u.id)}">${this.escapeHtml(u.name)} (${this.escapeHtml(String(u.activeLoans))} préstamos)</option>`;
         });
 
-        // Books Select
+        // Select de libros
         const bookSelect = document.getElementById('loanBook');
         bookSelect.innerHTML = '<option value="">Buscar libro disponible...</option>';
         this.books.filter(b => b.available).forEach(b => {
-            bookSelect.innerHTML += `<option value="${b.id}">${b.title} - ${b.author}</option>`;
+            bookSelect.innerHTML += `<option value="${this.escapeHtml(b.id)}">${this.escapeHtml(b.title)} - ${this.escapeHtml(b.author)}</option>`;
         });
     }
 
     setupEventListeners() {
-        // Forms
+        // Formularios
         document.getElementById('formUser').addEventListener('submit', (e) => {
             e.preventDefault();
             try {
-                this.registerUser(
-                    document.getElementById('userName').value,
-                    document.getElementById('userType').value
-                );
+                const rawName = document.getElementById('userName').value;
+                const name = this.validateName(rawName);
+                const type = String(document.getElementById('userType').value || '').trim();
+                if (!type) throw new Error('Seleccione un tipo de usuario');
+                if (this.editingUserId) {
+                    this.updateUser(this.editingUserId, name, type);
+                } else {
+                    this.registerUser(name, type);
+                }
                 e.target.reset();
+                document.getElementById('userId').value = '';
             } catch (err) {
                 this.showNotification(err.message, 'error');
             }
@@ -257,12 +431,18 @@ class LibrarySystem {
         document.getElementById('formBook').addEventListener('submit', (e) => {
             e.preventDefault();
             try {
-                this.registerBook(
-                    document.getElementById('bookId').value,
-                    document.getElementById('bookTitle').value,
-                    document.getElementById('bookAuthor').value
-                );
+                const rawTitle = document.getElementById('bookTitle').value;
+                const rawAuthor = document.getElementById('bookAuthor').value;
+                const title = this.validateTitleOrAuthor(rawTitle, 'Título');
+                const author = this.validateTitleOrAuthor(rawAuthor, 'Autor');
+                if (this.editingBookId) {
+                    this.updateBook(this.editingBookId, title, author);
+                } else {
+                    this.registerBook(title, author);
+                }
                 e.target.reset();
+                const bookIdInput = document.getElementById('bookId');
+                if (bookIdInput) bookIdInput.value = '';
             } catch (err) {
                 this.showNotification(err.message, 'error');
             }
